@@ -175,6 +175,6 @@ REAMDE.md
 /__pycache__
 /flask_pkg
 db.sqlite3
-
+twarc.log
 
 dashboard/migrations

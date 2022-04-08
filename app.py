@@ -1,22 +1,11 @@
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.models import User
-from django.core.serializers import serialize
-from django.http import HttpResponse
-from django.http import HttpRequest
+from flask import Flask, render_template, jsonify, request
 from dotenv import load_dotenv
 from pprint import pprint
+import itertools
 import os
 import tweepy
 import requests
-from django.views.generic import (
-    ListView,
-    DetailView,
-    CreateView,
-    UpdateView,
-    DeleteView
-)
-from .models import TwitterUser
+import pandas as pd
 
 
 load_dotenv()
@@ -29,8 +18,10 @@ ACCESS_TOKEN = os.getenv('ACCESS_TOKEN')
 ACCESS_TOKEN_SECRET = os.getenv('ACCESS_TOKEN_SECRET')
 
 
+templates = os.path.abspath('templates')
+app = Flask(__name__, template_folder=templates)
 
-#### OAUTH 1.0a ####
+# region OAUTH 1.0a
 # oauth1_user_handler = tweepy.OAuth1UserHandler(
 #     consumer_key=API_KEY,
 #     consumer_secret=API_KEY_SECRET,
@@ -40,8 +31,10 @@ ACCESS_TOKEN_SECRET = os.getenv('ACCESS_TOKEN_SECRET')
 #     )
 #
 # auth_url = oauth1_user_handler.get_authorization_url(signin_with_twitter=True)
+# endregion OAUTH 1.0a
 
-#### OAUTH 2.0 ####
+
+# region OAUTH 2.0
 oauth2_user_handler = tweepy.OAuth2UserHandler(
     client_id=CLIENT_ID,
     redirect_uri="http://127.0.0.1:5000/welcome",
@@ -67,17 +60,17 @@ oauth2_user_handler = tweepy.OAuth2UserHandler(
     client_secret=CLIENT_SECRET,
 )
 auth_url = oauth2_user_handler.get_authorization_url()
+# endregion OAUTH 2.0
 
 
-def home(request):
-    context = {
-        'auth_url': auth_url
-    }
-    return render(request, template_name='dashboard/home.html', context=context)
+@app.route('/', methods=['GET'])
+def home():
+    return render_template('index.html', value=auth_url)
 
 
-def welcome(request):
-    #### OAUTH 1.0a ####
+@app.route('/welcome', methods=['GET'])
+def welcome():
+    # region OAUTH 1.0a
     # query_str_args = request.args.to_dict()
     # oauth_token = query_str_args['oauth_token']
     # oauth_verifier = query_str_args['oauth_verifier']
@@ -102,8 +95,9 @@ def welcome(request):
     # people_i_follow = client.get_users_followers(id=me['id']).json()['data']
     # pprint(me)
     # pprint(people_i_follow)
+    # endregion OAUTH 1.0a
 
-    #### OAUTH 2.0 ####
+    # region OAUTH 2.0
     consent = oauth2_user_handler.fetch_token(authorization_response=request.url)
     access_token = consent['access_token']
     refresh_token = consent['refresh_token']
@@ -115,29 +109,46 @@ def welcome(request):
                            return_type=requests.Response,
                            wait_on_rate_limit=True,)
 
-    # client = tweepy.Client(
-    #     bearer_token=f'Bearer {access_token}',
-    #     consumer_key=API_KEY,
-    #     consumer_secret=API_KEY_SECRET,
-    #     access_token=access_token,
-    #     # access_token_secret=access_token_secret,
-    #     return_type=requests.Response,
-    #     wait_on_rate_limit=True
-    # )
-
     me = client.get_me(user_auth=False).json()['data']
-    people_i_follow = client.get_users_followers(id=me['id']).json()['data']
+
+    # people_i_follow = []
+    # # Leave `max_results=100` because it won't return a `next_token` if set greater than 100
+    # initial_request = client.get_users_followers(id=me['id'], max_results=100).json()
+    # next_token = initial_request['meta']['next_token']
+    #
+    # while next_token is not None:
+    #     people_i_follow.extend(initial_request['data'])
+    #     next_request = client.get_users_following(id=me['id'],
+    #                                               max_results=100,
+    #                                               pagination_token=next_token).json()
+    #     if 'meta' in next_request.keys():
+    #         if 'next_token' in next_request['meta'].keys():
+    #             next_token = next_request['meta']['next_token']
+    #         else:
+    #             next_token = None
+    #             people_i_follow.extend(next_request['data'])
+    #             break
+    #     initial_request = next_request
+
     pprint(me)
-    pprint(people_i_follow)
+    # pprint(people_i_follow)
+    # endregion OAUTH 2.0
 
-    context = {
-        'access_token': access_token,
-    }
+    # region pandas
+    # df = pd.json_normalize(people_i_follow)
+    # df.to_csv('people_i_follow.csv')
+    #
+    # print(f'LEN: {len(people_i_follow)}')
+    # print(df.head())
+    # endregion pandas
 
-    return render(request=HttpRequest(), template_name='dashboard/home.html', context=context)
+    return render_template('welcome.html', access_token=access_token)
 
-# class TwitterUserListView(ListView):
-#     model = TwitterUser
-#     template_name = 'dashboard/home.html'  # <app> /<model>_<viewtype>.html
-#     context_object_name = 'twitter_users'
 
+@app.route('/following')
+def following():
+    pass
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
