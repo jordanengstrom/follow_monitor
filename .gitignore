@@ -176,5 +176,5 @@ REAMDE.md
 /flask_pkg
 db.sqlite3
 twarc.log
-
+/static
 dashboard/migrations
