@@ -7,7 +7,6 @@ import tweepy
 import requests
 import pandas as pd
 
-
 load_dotenv()
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
@@ -16,7 +15,6 @@ API_KEY = os.getenv('API_KEY')  # cosumer_key
 API_KEY_SECRET = os.getenv('API_KEY_SECRET')  # consumer_secret
 ACCESS_TOKEN = os.getenv('ACCESS_TOKEN')
 ACCESS_TOKEN_SECRET = os.getenv('ACCESS_TOKEN_SECRET')
-
 
 templates = os.path.abspath('templates')
 app = Flask(__name__, template_folder=templates)
@@ -39,27 +37,29 @@ oauth2_user_handler = tweepy.OAuth2UserHandler(
     client_id=CLIENT_ID,
     redirect_uri="http://127.0.0.1:5000/welcome",
     scope=[
-           # "block.read",
-           # "block.write",
-           "follows.read",
-           "follows.write",
-           # "like.read",
-           # "like.write",
-           # "list.read",
-           # "list.write",
-           # "mute.read",
-           # "mute.write"
-           "offline.access",
-           # "space.read",
-           # "space.write",
-           "tweet.read",
-           "tweet.write",
-           # "tweet.moderate.write"
-           "users.read",
-           ],
+        # "block.read",
+        # "block.write",
+        "follows.read",
+        "follows.write",
+        # "like.read",
+        # "like.write",
+        # "list.read",
+        # "list.write",
+        # "mute.read",
+        # "mute.write"
+        "offline.access",
+        # "space.read",
+        # "space.write",
+        "tweet.read",
+        "tweet.write",
+        # "tweet.moderate.write"
+        "users.read",
+    ],
     client_secret=CLIENT_SECRET,
 )
 auth_url = oauth2_user_handler.get_authorization_url()
+
+
 # endregion OAUTH 2.0
 
 
@@ -107,30 +107,35 @@ def welcome():
 
     client = tweepy.Client(access_token,
                            return_type=requests.Response,
-                           wait_on_rate_limit=True,)
+                           wait_on_rate_limit=True, )
 
     me = client.get_me(user_auth=False).json()['data']
-
-    # people_i_follow = []
-    # # Leave `max_results=100` because it won't return a `next_token` if set greater than 100
-    # initial_request = client.get_users_followers(id=me['id'], max_results=100).json()
-    # next_token = initial_request['meta']['next_token']
-    #
-    # while next_token is not None:
-    #     people_i_follow.extend(initial_request['data'])
-    #     next_request = client.get_users_following(id=me['id'],
-    #                                               max_results=100,
-    #                                               pagination_token=next_token).json()
-    #     if 'meta' in next_request.keys():
-    #         if 'next_token' in next_request['meta'].keys():
-    #             next_token = next_request['meta']['next_token']
-    #         else:
-    #             next_token = None
-    #             people_i_follow.extend(next_request['data'])
-    #             break
-    #     initial_request = next_request
-
+    print('me:')
     pprint(me)
+    my_id = int(me['id'])
+
+    people_i_follow = []
+    user_fields = ['created_at', 'description', 'id', 'location', 'name',
+                   'pinned_tweet_id', 'profile_image_url', 'protected',
+                   'url', 'username', 'verified', ]
+    initial_request = client.get_users_following(id=my_id, max_results=1000, user_fields=user_fields).json()
+    next_token = initial_request['meta']['next_token']
+
+    while next_token is not None:
+        people_i_follow.extend(initial_request['data'])
+        next_request = client.get_users_following(id=my_id,
+                                                  max_results=1000,
+                                                  user_fields=user_fields,
+                                                  pagination_token=next_token).json()
+        if 'meta' in next_request.keys():
+            if 'next_token' in next_request['meta'].keys():
+                next_token = next_request['meta']['next_token']
+            else:
+                next_token = None
+                people_i_follow.extend(next_request['data'])
+                break
+        initial_request = next_request
+
     # pprint(people_i_follow)
     # endregion OAUTH 2.0
 

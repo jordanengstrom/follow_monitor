@@ -173,7 +173,6 @@ Thumbs.db
 REAMDE.md
 /venv
 /__pycache__
-/flask_pkg
 db.sqlite3
 twarc.log
 /static
