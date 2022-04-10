@@ -177,4 +177,5 @@ REAMDE.md
 db.sqlite3
 twarc.log
 /static
+*.csv
 dashboard/migrations
