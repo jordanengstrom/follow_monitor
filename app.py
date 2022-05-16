@@ -234,7 +234,7 @@ async def unfollow_non_followers(tweepy_client: tweepy.Client, non_followers_df:
             responses.append(current_data)
 
             # https://developer.twitter.com/en/docs/twitter-api/rate-limits
-            await asyncio.sleep(20)  # time.sleep(18)
+            await asyncio.sleep(173)
     return responses
 
 
@@ -282,5 +282,5 @@ async def execute_unfollow():
     return response
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
