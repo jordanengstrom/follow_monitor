@@ -178,3 +178,5 @@ twarc.log
 /static
 *.csv
 dashboard/migrations
+
+func.py
